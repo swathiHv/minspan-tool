@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>E. coli core minspans</title>
+    <script src="http://d3js.org/d3.v3.min.js" charset="utf-8"></script>
+    <script src="visbio-dev0.4.0.js"></script>
+    <meta charset="utf-8" />
+    <style>
+     .download { 
+       position: absolute;
+       left: 20px;
+       top: 20px;
+     }
+     #status {
+       position:absolute;
+       top:10px;
+       right: 30px;
+       color: red;
+       background-color: white;
+       font-size: 16px
+     }
+    </style>
+
+  </head>
+  <body>
+    <script type="text/javascript">
+     d3.json('minspan_data_dict_ECOM.json', load);
+
+     function load(error, minspans) {
+       if (error) return console.warn(error);
+
+       var minspan_fluxes = {}, 
+       minspan_exists = false,
+       keys = [],
+       key_ind = 0,
+       this_reaction = null;
+
+       var current_flux = {},
+       add_range = function(array, n) {
+	 for (var i=0; i < n; i++) {
+	   array = array.concat(d3.scale.category10().range())
+	 }
+	 return array
+       }
+       var color_scale = d3.scale.ordinal().domain(minspans.labels).range(add_range(['#eee', '#e00', '#eee'], 3));
+       var map = visbio.metabolic_map({ map_path: "core-e-coli-v3.json", 
+				   fill_screen: true,
+				   css_path: "metabolic-map.css",
+				   flux_color_scale: color_scale,
+				   flux_source: function(callback) {
+	   callback([current_flux], minspan_exists);} 
+				   });
+       map.set_update_hook(function(sel) {
+	 var labels = d3.selectAll('.reaction-label');
+	 labels.style('font-size', '7px');
+	 labels.text(function(d) { return d.id });
+
+	 sel.selectAll('.reaction-path, .reaction-label')
+	    .on('mouseover', function(d) {
+	   // Don't reset if you've already clicked on this reaction
+	   if (d.id==this_reaction) return;
+
+	   if (d.id in minspans.combined) { 
+	     if (d.id != this_reaction) new_minspan(d.id);
+
+	     // show combined minspans
+	     current_flux = minspans.combined[d.id];
+
+	     // set label
+	     some_minspans(d.id, keys.length, -1);
+	   } else {
+	     no_minspans(d.id);
+	   }
+	   map.reload_flux();
+	 })
+	      .on('mousedown', function(d) { 
+	   if (d.id in minspans.individual) {
+	     if (d.id != this_reaction) new_minspan(d.id);
+
+	     // show individual minspans
+	     current_flux = minspans.individual[d.id][keys[key_ind]];
+
+	     // set label
+	     some_minspans(d.id, keys.length, key_ind);
+
+	     // increment minspan
+	     key_ind++;
+	     if (key_ind >= keys.length) key_ind = 0;
+	   } else {
+	     no_minspans(d.id);
+	   }
+	   map.reload_flux();
+	 });
+
+	 //definitions
+	 function new_minspan(id) {
+	   this_reaction = id;
+	   keys = Object.keys(minspans.individual[id]);
+	   next_key = 0;
+	 }
+	 function some_minspans(id, count, key_ind) {
+	   minspan_exists = true;
+	   if (key_ind >= 0) {
+	     map.set_status(id + ": " + (key_ind + 1) + " of " + count + " minspans")
+	   } else {
+	     map.set_status(id + ": " + count + " minspans")
+	   }
+	 }
+	 function no_minspans(id) {
+	     current_flux = {};
+	     minspan_exists = false;
+	     map.set_status(id + ": 0 minspans")
+	 }
+	   
+       });
+
+       var ex = visbio.export_svg();
+       d3.select('body').append('button')
+	 .classed('download', true)
+	 .text('download')
+	 .on('click', function(d) { ex.download('map', 'svg', true); });
+     }
+    </script>
+  </body>
+</html>

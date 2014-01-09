@@ -2695,7 +2695,7 @@ define('vis/tooltip',["./scaffold", "lib/d3"], function (scaffold, d3) {
     };
 });
 
-define('metabolic-map/utils',["lib/d3"], function (d3) {
+define('metabolic-map/utils',["lib/d3", "vis/scaffold"], function (d3, scaffold) {
     return { setup_zoom_container: setup_zoom_container,
              setup_defs: setup_defs,
 	     draw_an_array: draw_an_array,
@@ -2857,9 +2857,14 @@ define('metabolic-map/utils',["lib/d3"], function (d3) {
 	reader.readAsText(f);
     }
 
-    function define_scales(map_w, map_h, w, h) {
-        var factor = Math.min(w/map_w, h/map_h),
-            scale = {};
+    function define_scales(map_w, map_h, w, h, options) {
+	var scale = scaffold.set_options(options, 
+					 { flux_color: d3.scale.linear()
+					   .domain([0, 0.000001, 1, 8, 50])
+					   .range(["rgb(200,200,200)", "rgb(190,190,255)", 
+						   "rgb(100,100,255)", "blue", "red"])});
+
+        var factor = Math.min(w/map_w, h/map_h);
         scale.x = d3.scale.linear()
             .domain([0, map_w])
             .range([(w - map_w*factor)/2, map_w*factor + (w - map_w*factor)/2]),
@@ -2881,9 +2886,6 @@ define('metabolic-map/utils',["lib/d3"], function (d3) {
         scale.flux_fill = d3.scale.linear()
             .domain([0, 40, 200])
             .range([1, 1, 1]),
-        scale.flux_color = d3.scale.linear()
-            .domain([0, 0.000001, 1, 8, 50])
-            .range(["rgb(200,200,200)", "rgb(190,190,255)", "rgb(100,100,255)", "blue", "red"]),
         scale.metabolite_concentration = d3.scale.linear()
             .domain([0, 10])
             .range([15, 200]),
@@ -3083,7 +3085,10 @@ define('metabolic-map/main',["vis/scaffold", "metabolic-map/utils", "lib/d3"], f
             metabolite_zoom_threshold: 0,
             reaction_zoom_threshold: 0,
             label_zoom_threshold: 0,
-            zoom_bounds: [0, 25] });
+            zoom_bounds: [0, 25],
+	    flux_color_scale: d3.scale.linear()
+		.domain([0, 0.000001, 1, 8, 50])
+		.range(["rgb(200,200,200)", "rgb(190,190,255)", "rgb(100,100,255)", "blue", "red"]) });
 
         var out = scaffold.setup_svg(o.selection, o.selection_is_svg,
                                      o.margins, o.fill_screen);
@@ -3141,7 +3146,7 @@ define('metabolic-map/main',["vis/scaffold", "metabolic-map/utils", "lib/d3"], f
         function reload_flux() {
             o.flux_source(function (fluxes, is_viable, objective) {
                 if (!is_viable) {
-                    set_status('cell is dead :\'(');
+                    // set_status('cell is dead :\'(');
                     fluxes = [];
                 } else if (objective) {
                     set_status('objective: ' + d3.format('.3f')(objective) + "    (HINT: Click a reaction)");
@@ -3216,7 +3221,8 @@ define('metabolic-map/main',["vis/scaffold", "metabolic-map/utils", "lib/d3"], f
             // set up svg and svg definitions
             o.scale = utils.define_scales(o.map_data.max_map_w,
 					  o.map_data.max_map_h,
-					  o.width, o.height);
+					  o.width, o.height,
+					  { flux_color: o.flux_color_scale });
             var defs = utils.setup_defs(o.svg, o.css);
             generate_markers(defs);
 
