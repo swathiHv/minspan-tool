@@ -24,7 +24,7 @@
   </head>
   <body>
     <script type="text/javascript">
-     d3.json('minspan_data_dict_ECOM.json', load);
+     d3.json('minspan_data_dict.json', load);
 
      function load(error, minspans) {
        if (error) return console.warn(error);
@@ -44,12 +44,12 @@
        }
        var color_scale = d3.scale.ordinal().domain(minspans.labels).range(add_range(['#eee', '#e00', '#eee'], 3));
        var map = visbio.metabolic_map({ map_path: "core-e-coli-v3.json", 
-				   fill_screen: true,
-				   css_path: "metabolic-map.css",
-				   flux_color_scale: color_scale,
-				   flux_source: function(callback) {
+				       fill_screen: true,
+				       css_path: "metabolic-map.css",
+				       flux_color_scale: color_scale,
+				       flux_source: function(callback) {
 	   callback([current_flux], minspan_exists);} 
-				   });
+				       });
        map.set_update_hook(function(sel) {
 	 var labels = d3.selectAll('.reaction-label');
 	 labels.style('font-size', '7px');
@@ -57,7 +57,7 @@
 
 	 sel.selectAll('.reaction-path, .reaction-label')
 	    .on('mouseover', function(d) {
-	   // Don't reset if you've already clicked on this reaction
+	   // Don't reset if you've already clicked/hovered on this reaction
 	   if (d.id==this_reaction) return;
 
 	   if (d.id in minspans.combined) { 
@@ -101,15 +101,15 @@
 	 function some_minspans(id, count, key_ind) {
 	   minspan_exists = true;
 	   if (key_ind >= 0) {
-	     map.set_status(id + ": " + (key_ind + 1) + " of " + count + " minspans")
+	     map.set_status(id + ": " + (key_ind + 1) + " of " + count + " minspan(s)")
 	   } else {
-	     map.set_status(id + ": " + count + " minspans")
+	     map.set_status(id + ": " + count + " minspan(s)")
 	   }
 	 }
 	 function no_minspans(id) {
 	     current_flux = {};
 	     minspan_exists = false;
-	     map.set_status(id + ": 0 minspans")
+	     map.set_status(id + ": 0 minspan(s)")
 	 }
 	   
        });
